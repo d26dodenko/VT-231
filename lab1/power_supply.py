@@ -25,3 +25,14 @@ def recommend_psu(cpu_power, gpu_power, other_power):
             return psu
 
     raise ValueError("No suitable power supply found")
+
+
+def check_power_supply(cpu_power, gpu_power, other_power, psu_power):
+    total_power = calculate_total_power(cpu_power, gpu_power, other_power)
+
+    if psu_power <= 0:
+        raise ValueError("PSU power must be greater than 0")
+
+    required_power = total_power * 1.2
+
+    return psu_power >= required_power
