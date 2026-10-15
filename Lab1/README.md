@@ -1,11 +1,3 @@
-<meta charset="UTF-8">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Markdown Export</title>
-
-<style> body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #1e293b; } h1, h2, h3, h4, h5, h6 { margin-top: 1.5em; margin-bottom: 0.5em; } code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; } pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 8px; overflow-x: auto; } pre code { background: none; padding: 0; color: inherit; } blockquote { border-left: 4px solid #6366f1; margin: 1em 0; padding: 0.5em 1em; background: #f8fafc; } table { border-collapse: collapse; width: 100%; margin: 1em 0; } th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; } th { background: #f1f5f9; font-weight: 600; } hr { border: none; border-top: 2px solid #e2e8f0; margin: 2em 0; } img { max-width: 100%; height: auto; } a { color: #4f46e5; } </style>
-
 # Лабораторная работа №1 Составление тест-кейсов для готового кода. Качество ПО и место тестирования в жизненном цикле
 
 ## Выполнил студент группы ВТ-231 Потрехаев Дмитрий
