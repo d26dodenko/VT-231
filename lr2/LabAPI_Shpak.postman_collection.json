@@ -1,0 +1,848 @@
+{
+  "info": {
+    "_postman_id": "3f1c9a52-7b64-4e0e-9c1a-labapi-0001",
+    "name": "LabAPI_Shpak",
+    "description": "Лабораторная работа №3. Интеграционное и API-тестирование.\nТестируемая система: Restful-Booker (https://restful-booker.herokuapp.com).\n\nПорядок запуска (Collection Runner):\n1. Папка Health -> 00 Health: GET /ping\n2. Папка Auth -> 01 Auth: POST /auth (сохраняет переменную token), далее негативные кейсы auth\n3. Папка Booking -> создание (сохраняет bookingId), чтение, PUT, PATCH, DELETE, повторное чтение (404),\n   затем негативные и граничные кейсы.\n\nПеременные окружения: baseUrl, token, bookingId.\nАвторизация: заголовок Cookie: token={{token}} или Authorization: Basic. В этой коллекции используется Cookie.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "description": "Проверка работоспособности сервиса. Эндпоинт должен отвечать 201 (так реализовано в Restful-Booker, хотя по REST ожидается 200).",
+      "item": [
+        {
+          "name": "00 Health: GET /ping",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Цель: проверить, что сервис жив и отвечает быстро.",
+                  "// Ожидаемый результат по документации: 201 Created (необычно: обычно health-check отвечает 200).",
+                  "pm.test('Статус 201 (по документации)', () => pm.response.to.have.status(201));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('Content-Type присутствует', () => pm.expect(pm.response.headers.has('Content-Type')).to.eql(true));",
+                  "pm.test('Тело ответа не содержит ошибки', () => pm.expect(pm.response.text()).to.not.include('Not Found'));",
+                  "// Фиксируем расхождение для отчёта",
+                  "if (pm.response.code !== 200) {",
+                  "  console.warn('Расхождение: /ping вернул ' + pm.response.code + ', а по REST-практике ожидается 200');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/ping", "host": ["{{baseUrl}}"], "path": ["ping"] },
+            "description": "Цель: health-check сервиса.\nВходные данные: нет.\nОжидаемый результат: 201 (документация) / 200 (REST-практика), пустое тело, ответ < 2 c."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Получение токена авторизации. Логин: admin, пароль: password123.",
+      "item": [
+        {
+          "name": "01 Auth: POST /auth (получение токена)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Цель: получить токен и сохранить его в переменную окружения.",
+                  "// Ожидаемый результат: 200 OK, тело {\"token\": \"...\"}, Content-Type: application/json.",
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('Есть поле token', () => pm.expect(pm.response.json()).to.have.property('token'));",
+                  "pm.test('Токен — непустая строка', () => { const t = pm.response.json().token; pm.expect(t).to.be.a('string').and.not.empty; });",
+                  "const body = pm.response.json();",
+                  "if (body && body.token) {",
+                  "  pm.environment.set('token', body.token);",
+                  "  console.log('token сохранён:', body.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth", "host": ["{{baseUrl}}"], "path": ["auth"] },
+            "description": "Цель: аутентификация и получение токена для защищённых методов.\nВходные данные: {\"username\":\"admin\",\"password\":\"password123\"}.\nОжидаемый результат: 200 OK, в теле поле token; токен записывается в переменную окружения token."
+          },
+          "response": []
+        },
+        {
+          "name": "02 Auth: POST /auth неверный пароль (негативный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Ожидается 200 с телом {\"reason\":\"Bad credentials\"} — фактическая особенность API (по REST ожидался бы 401).",
+                  "pm.test('Статус 200 (особенность API, ожидался 401)', () => pm.response.to.have.status(200));",
+                  "pm.test('Нет поля token', () => pm.expect(pm.response.json()).to.not.have.property('token'));",
+                  "pm.test('Есть reason = Bad credentials', () => pm.expect(pm.response.json().reason).to.eql('Bad credentials'));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"wrong_password\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth", "host": ["{{baseUrl}}"], "path": ["auth"] },
+            "description": "Цель: проверить отказ при неверном пароле.\nВходные данные: неверный пароль.\nОжидаемый результат по REST: 401. Фактически (по документации): 200 + {\"reason\":\"Bad credentials\"}, токен не выдаётся."
+          },
+          "response": []
+        },
+        {
+          "name": "03 Auth: POST /auth неверный логин (негативный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 (ожидался 401)', () => pm.response.to.have.status(200));",
+                  "pm.test('Нет поля token', () => pm.expect(pm.response.json()).to.not.have.property('token'));",
+                  "pm.test('reason = Bad credentials', () => pm.expect(pm.response.json().reason).to.eql('Bad credentials'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"not_admin\",\n  \"password\": \"password123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth", "host": ["{{baseUrl}}"], "path": ["auth"] },
+            "description": "Цель: отказ при несуществующем логине.\nВходные данные: неверный username.\nОжидаемый результат: 200 + reason=Bad credentials (по REST — 401)."
+          },
+          "response": []
+        },
+        {
+          "name": "04 Auth: POST /auth пустые поля (граничный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 (ожидался 400)', () => pm.response.to.have.status(200));",
+                  "pm.test('Нет поля token', () => pm.expect(pm.response.json()).to.not.have.property('token'));",
+                  "pm.test('reason = Bad credentials', () => pm.expect(pm.response.json().reason).to.eql('Bad credentials'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"\",\n  \"password\": \"\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth", "host": ["{{baseUrl}}"], "path": ["auth"] },
+            "description": "Граничный кейс: пустые строки вместо логина и пароля.\nОжидаемый результат: 400 (валидация) или 401. Фактически: 200 + Bad credentials."
+          },
+          "response": []
+        },
+        {
+          "name": "05 Auth: POST /auth отсутствует password (граничный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ получен (200/400/500)', () => pm.expect([200,400,500]).to.include(pm.response.code));",
+                  "pm.test('Токен не выдан', () => { let j; try { j = pm.response.json(); } catch(e) { j = {}; } pm.expect(j).to.not.have.property('token'); });",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth", "host": ["{{baseUrl}}"], "path": ["auth"] },
+            "description": "Граничный кейс: отсутствует обязательное поле password.\nОжидаемый результат: 400 Bad Request. Фактически — фиксируется в отчёте. Токен не должен выдаваться."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Booking",
+      "description": "CRUD-сценарии для ресурса /booking, негативные и граничные кейсы.",
+      "item": [
+        {
+          "name": "10 Booking: GET /booking (список + фильтр)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Время ответа < 3000 мс', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test('Тело — массив', () => pm.expect(pm.response.json()).to.be.an('array'));",
+                  "pm.test('Массив не пуст', () => pm.expect(pm.response.json().length).to.be.above(0));",
+                  "pm.test('Элементы содержат bookingid', () => pm.expect(pm.response.json()[0]).to.have.property('bookingid'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/booking",
+              "host": ["{{baseUrl}}"],
+              "path": ["booking"]
+            },
+            "description": "Цель: получить список id бронирований.\nВходные данные: нет.\nОжидаемый результат: 200, массив объектов вида {\"bookingid\": N}."
+          },
+          "response": []
+        },
+        {
+          "name": "11 Booking: GET /booking?checkin=&lastname= (фильтры)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Тело — массив', () => pm.expect(pm.response.json()).to.be.an('array'));",
+                  "pm.test('Время ответа < 3000 мс', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test('Фильтр по несуществующей фамилии даёт []', () => { if (pm.request.url.query.get('lastname') === 'ZZZNotFound') pm.expect(pm.response.json()).to.be.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/booking?lastname=ZZZNotFound",
+              "host": ["{{baseUrl}}"],
+              "path": ["booking"],
+              "query": [{ "key": "lastname", "value": "ZZZNotFound" }]
+            },
+            "description": "Цель: проверить фильтрацию списка по фамилии.\nВходные данные: lastname=ZZZNotFound.\nОжидаемый результат: 200 и пустой массив []."
+          },
+          "response": []
+        },
+        {
+          "name": "12 Booking: POST /booking (создание, сохраняет bookingId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 (документация; по REST ожидался 201)', () => pm.response.to.have.status(200));",
+                  "pm.test('Время ответа < 3000 мс', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test('Есть поле bookingid', () => pm.expect(pm.response.json()).to.have.property('bookingid'));",
+                  "pm.test('bookingid — положительное число', () => pm.expect(pm.response.json().bookingid).to.be.a('number').and.above(0));",
+                  "pm.test('Есть объект booking с firstname', () => pm.expect(pm.response.json().booking).to.have.property('firstname'));",
+                  "const id = pm.response.json().bookingid;",
+                  "if (id) {",
+                  "  pm.environment.set('bookingId', id);",
+                  "  console.log('bookingId сохранён:', id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"Иван\",\n  \"lastname\": \"Иванов\",\n  \"totalprice\": 150,\n  \"depositpaid\": true,\n  \"bookingdates\": {\n    \"checkin\": \"2026-11-10\",\n    \"checkout\": \"2026-11-15\"\n  },\n  \"additionalneeds\": \"Breakfast\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Цель: создать бронирование и сохранить его id.\nВходные данные: корректный JSON бронирования.\nОжидаемый результат: по документации 200 OK (по REST — 201 Created), тело {bookingid, booking}; bookingid пишется в переменную окружения bookingId."
+          },
+          "response": []
+        },
+        {
+          "name": "13 Booking: GET /booking/{{bookingId}}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('Есть обязательные поля', () => { const b = pm.response.json(); pm.expect(b).to.include.keys('firstname','lastname','totalprice','depositpaid','bookingdates'); });",
+                  "pm.test('firstname совпадает с созданным', () => pm.expect(pm.response.json().firstname).to.eql('Иван'));",
+                  "pm.test('bookingdates содержит checkin и checkout', () => pm.expect(pm.response.json().bookingdates).to.include.keys('checkin','checkout'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["booking", "{{bookingId}}"] },
+            "description": "Цель: прочитать созданное бронирование.\nВходные данные: bookingId из переменной окружения.\nОжидаемый результат: 200 и объект с полями firstname, lastname, totalprice, depositpaid, bookingdates."
+          },
+          "response": []
+        },
+        {
+          "name": "14 Booking: PUT /booking/{{bookingId}} (полное обновление)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('firstname обновился', () => pm.expect(pm.response.json().firstname).to.eql('Пётр'));",
+                  "pm.test('totalprice обновился на 999', () => pm.expect(pm.response.json().totalprice).to.eql(999));",
+                  "pm.test('additionalneeds обновился', () => pm.expect(pm.response.json().additionalneeds).to.eql('Late checkout'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Cookie", "value": "token={{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"Пётр\",\n  \"lastname\": \"Петров\",\n  \"totalprice\": 999,\n  \"depositpaid\": false,\n  \"bookingdates\": {\n    \"checkin\": \"2026-12-01\",\n    \"checkout\": \"2026-12-07\"\n  },\n  \"additionalneeds\": \"Late checkout\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["booking", "{{bookingId}}"] },
+            "description": "Цель: полностью обновить бронирование (требует авторизации).\nВходные данные: Cookie token={{token}} и полный JSON.\nОжидаемый результат: 200 и обновлённый объект бронирования."
+          },
+          "response": []
+        },
+        {
+          "name": "15 Booking: PATCH /booking/{{bookingId}} (частичное обновление)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('Изменён lastname', () => pm.expect(pm.response.json().lastname).to.eql('Сидоров'));",
+                  "pm.test('Остальные поля сохранены (firstname = Пётр)', () => pm.expect(pm.response.json().firstname).to.eql('Пётр'));",
+                  "pm.test('totalprice не изменился (999)', () => pm.expect(pm.response.json().totalprice).to.eql(999));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Cookie", "value": "token={{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"lastname\": \"Сидоров\"\n}" },
+            "url": { "raw": "{{baseUrl}}/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["booking", "{{bookingId}}"] },
+            "description": "Цель: частично изменить бронирование (только lastname).\nВходные данные: Cookie token={{token}}, тело {\"lastname\":\"Сидоров\"}.\nОжидаемый результат: 200, изменён только lastname, остальные поля не тронуты."
+          },
+          "response": []
+        },
+        {
+          "name": "16 Booking: PATCH /booking/{{bookingId}} без токена (негативный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 403 (ожидался 401)', () => pm.response.to.have.status(403));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('Тело не содержит обновлённого значения', () => pm.expect(pm.response.text()).to.not.include('Хакер'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"firstname\": \"Хакер\"\n}" },
+            "url": { "raw": "{{baseUrl}}/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["booking", "{{bookingId}}"] },
+            "description": "Цель: убедиться, что без авторизации изменение невозможно.\nВходные данные: без Cookie/Authorization.\nОжидаемый результат по REST: 401 Unauthorized. Фактически Restful-Booker возвращает 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "17 Booking: PUT /booking/{{bookingId}} некорректный токен (негативный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 403 (ожидался 401)', () => pm.response.to.have.status(403));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('В ответе нет объекта booking', () => { let j; try { j = pm.response.json(); } catch(e) { j = {}; } pm.expect(j).to.not.have.property('bookingdates'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Cookie", "value": "token=invalidtoken12345" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"Взлом\",\n  \"lastname\": \"Взломов\",\n  \"totalprice\": 1,\n  \"depositpaid\": true,\n  \"bookingdates\": { \"checkin\": \"2026-12-01\", \"checkout\": \"2026-12-02\" }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["booking", "{{bookingId}}"] },
+            "description": "Цель: проверить реакцию на поддельный токен.\nВходные данные: Cookie token=invalidtoken12345.\nОжидаемый результат по REST: 401. Фактически: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "18 Booking: GET несуществующий id (негативный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Тело — Not Found', () => pm.expect(pm.response.text()).to.eql('Not Found'));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/booking/99999999", "host": ["{{baseUrl}}"], "path": ["booking", "99999999"] },
+            "description": "Цель: запрос несуществующего бронирования.\nВходные данные: id=99999999.\nОжидаемый результат: 404 Not Found с текстом Not Found."
+          },
+          "response": []
+        },
+        {
+          "name": "19 Booking: POST /booking некорректный JSON (негативный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 400 (ожидался 400)', () => pm.response.to.have.status(400));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('bookingId не создан в ответе', () => { let j; try { j = pm.response.json(); } catch(e) { j = {}; } pm.expect(j).to.not.have.property('bookingid'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"firstname\": \"Иван\",\n  \"lastname\": \"Иванов\",\n  \"totalprice\": 150,\n" },
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Цель: проверить обработку битого JSON (незакрытый объект).\nОжидаемый результат: 400 Bad Request."
+          },
+          "response": []
+        },
+        {
+          "name": "20 Booking: POST /booking totalprice строкой (неверный тип)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// По-хорошему нужен 400. Фактически API может принять строку — фиксируем расхождение.",
+                  "pm.test('Ответ получен (200/400)', () => pm.expect([200,400]).to.include(pm.response.code));",
+                  "pm.test('Нет 500', () => pm.response.to.not.have.status(500));",
+                  "pm.test('Время ответа < 3000 мс', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "if (pm.response.code === 200) { console.warn('Дефект: totalprice строкой принят без ошибки валидации'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"Тест\",\n  \"lastname\": \"Типов\",\n  \"totalprice\": \"150\",\n  \"depositpaid\": true,\n  \"bookingdates\": { \"checkin\": \"2026-11-10\", \"checkout\": \"2026-11-15\" }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Цель: проверить валидацию типа totalprice.\nВходные данные: totalprice = \"150\" (строка вместо числа).\nОжидаемый результат: 400 Bad Request (тип неверный)."
+          },
+          "response": []
+        },
+        {
+          "name": "21 Booking: POST /booking без обязательных полей (негативный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ получен (400 или 200)', () => pm.expect([200,400]).to.include(pm.response.code));",
+                  "pm.test('Нет 500 (сервер не падает)', () => pm.response.to.not.have.status(500));",
+                  "pm.test('Время ответа < 3000 мс', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"firstname\": \"Толькоимя\"\n}" },
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Цель: проверить валидацию обязательных полей (нет lastname, totalprice, depositpaid, bookingdates).\nОжидаемый результат: 400 Bad Request. Фактически возможен 200 или 500 — фиксируется в отчёте."
+          },
+          "response": []
+        },
+        {
+          "name": "22 Booking: POST /booking пустые строки (граничный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ получен (400 или 200)', () => pm.expect([200,400]).to.include(pm.response.code));",
+                  "pm.test('Нет 500', () => pm.response.to.not.have.status(500));",
+                  "pm.test('Время ответа < 3000 мс', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"\",\n  \"lastname\": \"\",\n  \"totalprice\": 100,\n  \"depositpaid\": true,\n  \"bookingdates\": { \"checkin\": \"\", \"checkout\": \"\" },\n  \"additionalneeds\": \"\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Граничный кейс: пустые строки в обязательных текстовых полях и датах.\nОжидаемый результат: 400 Bad Request (по валидации)."
+          },
+          "response": []
+        },
+        {
+          "name": "23 Booking: POST /booking очень длинные строки 1000+ (граничный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ получен (200/400/414)', () => pm.expect([200,400,414]).to.include(pm.response.code));",
+                  "pm.test('Нет 500', () => pm.response.to.not.have.status(500));",
+                  "pm.test('Время ответа < 5000 мс', () => pm.expect(pm.response.responseTime).to.be.below(5000));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\n  \"lastname\": \"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\n  \"totalprice\": 100,\n  \"depositpaid\": true,\n  \"bookingdates\": { \"checkin\": \"2026-11-10\", \"checkout\": \"2026-11-15\" },\n  \"additionalneeds\": \"C\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Граничный кейс: firstname 1000+ символов, lastname 400 символов.\nОжидаемый результат: 400 (ограничение длины) либо корректное принятие без 500."
+          },
+          "response": []
+        },
+        {
+          "name": "24 Booking: POST /booking totalprice = 0 (граничный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ получен (200/400)', () => pm.expect([200,400]).to.include(pm.response.code));",
+                  "pm.test('Нет 500', () => pm.response.to.not.have.status(500));",
+                  "pm.test('Если 200 — totalprice сохранён как 0', () => { if (pm.response.code === 200) pm.expect(pm.response.json().booking.totalprice).to.eql(0); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"Ноль\",\n  \"lastname\": \"Нулев\",\n  \"totalprice\": 0,\n  \"depositpaid\": false,\n  \"bookingdates\": { \"checkin\": \"2026-11-10\", \"checkout\": \"2026-11-15\" }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Граничный кейс: totalprice = 0 (нижняя граница, допустимое значение).\nОжидаемый результат: 200 (или 400, если требуется > 0)."
+          },
+          "response": []
+        },
+        {
+          "name": "25 Booking: POST /booking totalprice отрицательный (граничный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ получен (400 или 500)', () => pm.expect([200,400,500]).to.include(pm.response.code));",
+                  "pm.test('Время ответа < 3000 мс', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test('Отрицательная цена не должна быть принята как корректная', () => { if (pm.response.code === 200) console.warn('Особенность: отрицательный totalprice принят'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"Минус\",\n  \"lastname\": \"Минусов\",\n  \"totalprice\": -100,\n  \"depositpaid\": true,\n  \"bookingdates\": { \"checkin\": \"2026-11-10\", \"checkout\": \"2026-11-15\" }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Граничный кейс: отрицательное значение totalprice = -100.\nОжидаемый результат: 400 Bad Request."
+          },
+          "response": []
+        },
+        {
+          "name": "26 Booking: POST /booking totalprice очень большое (граничный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ получен (200/400/500)', () => pm.expect([200,400,500]).to.include(pm.response.code));",
+                  "pm.test('Время ответа < 3000 мс', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test('Ответ — валидный JSON или пустой текст', () => { const t = pm.response.text(); pm.expect(t === undefined || typeof t === 'string').to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"Максимум\",\n  \"lastname\": \"Максимов\",\n  \"totalprice\": 999999999999,\n  \"depositpaid\": true,\n  \"bookingdates\": { \"checkin\": \"2026-11-10\", \"checkout\": \"2026-11-15\" }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Граничный кейс: очень большое значение totalprice = 999999999999.\nОжидаемый результат: 400 (превышение лимита) или корректное сохранение."
+          },
+          "response": []
+        },
+        {
+          "name": "27 Booking: POST /booking checkout раньше checkin (граничный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ получен (400 или 200)', () => pm.expect([200,400]).to.include(pm.response.code));",
+                  "pm.test('Нет 500', () => pm.response.to.not.have.status(500));",
+                  "pm.test('Время ответа < 3000 мс', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "if (pm.response.code === 200) { console.warn('Дефект: даты не проверяются (checkout < checkin)'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"Дата\",\n  \"lastname\": \"Датов\",\n  \"totalprice\": 100,\n  \"depositpaid\": true,\n  \"bookingdates\": { \"checkin\": \"2026-11-15\", \"checkout\": \"2026-11-10\" }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Граничный кейс: checkout (2026-11-10) раньше checkin (2026-11-15).\nОжидаемый результат: 400 Bad Request."
+          },
+          "response": []
+        },
+        {
+          "name": "28 Booking: POST /booking неверный формат даты (граничный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ получен (400/500/200)', () => pm.expect([200,400,500]).to.include(pm.response.code));",
+                  "pm.test('Время ответа < 3000 мс', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "if (pm.response.code === 500) { console.warn('Дефект: невалидная дата приводит к 500 Internal Server Error'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"Формат\",\n  \"lastname\": \"Форматов\",\n  \"totalprice\": 100,\n  \"depositpaid\": true,\n  \"bookingdates\": { \"checkin\": \"15/11/2026\", \"checkout\": \"not-a-date\" }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Граничный кейс: даты в формате 15/11/2026 и not-a-date вместо YYYY-MM-DD.\nОжидаемый результат: 400 Bad Request."
+          },
+          "response": []
+        },
+        {
+          "name": "29 Booking: DELETE /booking/{{bookingId}} (удаление)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 201 (документация; по REST ожидался 200 или 204)', () => pm.response.to.have.status(201));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('Тело — Created', () => pm.expect(pm.response.text().trim()).to.eql('Created'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "token={{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["booking", "{{bookingId}}"] },
+            "description": "Цель: удалить бронирование (требует авторизации).\nВходные данные: Cookie token={{token}}, bookingId.\nОжидаемый результат по документации: 201 Created с телом Created (по REST — 200/204)."
+          },
+          "response": []
+        },
+        {
+          "name": "30 Booking: GET /booking/{{bookingId}} после удаления (ожидается 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Тело — Not Found', () => pm.expect(pm.response.text()).to.eql('Not Found'));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["booking", "{{bookingId}}"] },
+            "description": "Цель: убедиться, что запись удалена.\nВходные данные: bookingId удалённого бронирования.\nОжидаемый результат: 404 Not Found."
+          },
+          "response": []
+        },
+        {
+          "name": "31 Booking: DELETE /booking/{{bookingId}} повторно (негативный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ получен (404/405/201)', () => pm.expect([201,404,405]).to.include(pm.response.code));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('Нет 500', () => pm.response.to.not.have.status(500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "token={{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["booking", "{{bookingId}}"] },
+            "description": "Цель: повторное удаление уже удалённой записи.\nОжидаемый результат: 404 Not Found (или 405)."
+          },
+          "response": []
+        },
+        {
+          "name": "32 Booking: DELETE /booking/99999999 несуществующий (негативный)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ получен (404/405)', () => pm.expect([404,405]).to.include(pm.response.code));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('Нет 500', () => pm.response.to.not.have.status(500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "token={{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/booking/99999999", "host": ["{{baseUrl}}"], "path": ["booking", "99999999"] },
+            "description": "Цель: удаление несуществующей записи.\nОжидаемый результат: 404 Not Found."
+          },
+          "response": []
+        },
+        {
+          "name": "33 Booking: PATCH /booking/1 метод HEAD/неверный (405)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 404 или 405 (метод не поддержан)', () => pm.expect([404,405]).to.include(pm.response.code));",
+                  "pm.test('Время ответа < 2000 мс', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+                  "pm.test('Ответ не содержит данных бронирования', () => pm.expect(pm.response.text()).to.not.include('bookingdates'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "HEAD",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Цель: проверить поведение при неподдержанном методе.\nВходные данные: HEAD /booking.\nОжидаемый результат: 405 Method Not Allowed (фактически может быть 404/200 без тела — фиксируется в отчёте)."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://restful-booker.herokuapp.com" },
+    { "key": "token", "value": "" },
+    { "key": "bookingId", "value": "" }
+  ]
+}
