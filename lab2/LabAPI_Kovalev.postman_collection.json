@@ -128,6 +128,45 @@
           "response": []
         },
         {
+          "name": "08 - Filter Bookings by Name",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Статус ответа 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Ответ является массивом\", function () {\n    const data = pm.response.json();\n    pm.expect(data).to.be.an(\"array\");\n});\n\npm.test(\"ID бронирований имеют числовой тип\", function () {\n    const data = pm.response.json();\n\n    data.forEach(function (booking) {\n        pm.expect(booking.bookingid).to.be.a(\"number\");\n    });\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n\n\npm.test(\"Найдено созданное бронирование\", function () {\n    const data = pm.response.json();\n    const bookingId = Number(pm.environment.get(\"bookingId\"));\n\n    const found = data.some(function (booking) {\n        return booking.bookingid === bookingId;\n    });\n\n    pm.expect(found).to.be.true;\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/booking?firstname=Artem&lastname=Kovelev",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ],
+              "query": [
+                {
+                  "key": "firstname",
+                  "value": "Artem"
+                },
+                {
+                  "key": "lastname",
+                  "value": "Kovelev"
+                }
+              ]
+            },
+            "description": "Цель: проверить фильтрацию списка бронирований по имени и фамилии гостя.\n\nМетод: GET /booking.\n\nВходные данные: firstname=Artem, lastname=Kovelev.\n\nОжидаемый результат: HTTP 200 и JSON-массив идентификаторов бронирований, соответствующих условиям фильтрации. Если совпадений нет, возвращается пустой массив."
+          },
+          "response": []
+        },
+        {
           "name": "02 - Get Booking",
           "event": [
             {
@@ -154,6 +193,105 @@
               ]
             },
             "description": "Цель: получение ранее созданного бронирования по ID.  \nМетод: GET /booking/{id}.  \nВходные данные: идентификатор bookingId из окружения.  \nОжидаемый результат: HTTP 200 и JSON с данными бронирования."
+          },
+          "response": []
+        },
+        {
+          "name": "09 - Update Without Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Доступ без токена запрещён\", function () {\n    pm.response.to.have.status(403);\n});\n\npm.test(\"Сервер вернул Forbidden\", function () {\n    pm.expect(pm.response.text()).to.include(\"Forbidden\");\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "\n{\n    \"firstname\": \"Unauthorized\",\n    \"lastname\": \"Test\",\n    \"totalprice\": 15000,\n    \"depositpaid\": false,\n    \"bookingdates\": {\n        \"checkin\": \"2027-03-12\",\n        \"checkout\": \"2027-03-16\"\n    },\n    \"additionalneeds\": \"None\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "10 - Update With Invalid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Неверный токен отклонён\", function () {\n    pm.response.to.have.status(403);\n});\n\npm.test(\"Ответ содержит Forbidden\", function () {\n    pm.expect(pm.response.text()).to.include(\"Forbidden\");\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "token=invalid_test_token_123"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"firstname\": \"Invalid\",\n    \"lastname\": \"Token\",\n    \"totalprice\": 15000,\n    \"depositpaid\": false,\n    \"bookingdates\": {\n        \"checkin\": \"2027-03-12\",\n        \"checkout\": \"2027-03-16\"\n    },\n    \"additionalneeds\": \"None\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
+            },
+            "description": "Цель: проверить запрет обновления бронирования при использовании некорректного токена авторизации. Входные данные: существующий bookingId, корректное тело JSON и недействительный токен. Ожидаемый результат: HTTP 403 Forbidden."
           },
           "response": []
         },
@@ -323,6 +461,213 @@
               ]
             },
             "description": "Цель: проверить отсутствие бронирования после его удаления.\n\nМетод: GET /booking/{id}.\n\nВходные данные: идентификатор ранее удалённого бронирования.\n\nОжидаемый результат: HTTP 404 Not Found, поскольку бронирование больше не существует."
+          },
+          "response": []
+        },
+        {
+          "name": "07 - List Bookings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Статус ответа 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Ответ является массивом\", function () {\n    const data = pm.response.json();\n    pm.expect(data).to.be.an(\"array\");\n});\n\npm.test(\"Элементы содержат bookingid\", function () {\n    const data = pm.response.json();\n\n    data.forEach(function (booking) {\n        pm.expect(booking).to.have.property(\"bookingid\");\n        pm.expect(booking.bookingid).to.be.a(\"number\");\n    });\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/booking",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            },
+            "description": "Цель: получить список существующих бронирований.\n\nМетод: GET /booking.\n\nВходные данные: отсутствуют.\n\nОжидаемый результат: HTTP 200 OK и массив JSON с идентификаторами бронирований."
+          },
+          "response": []
+        },
+        {
+          "name": "11 - Booking Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Статус ответа 404\", function () {\n    pm.response.to.have.status(404);\n});\n\npm.test(\"Бронирование не найдено\", function () {\n    pm.expect(pm.response.text()).to.include(\"Not Found\");\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/booking/999999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "999999999"
+              ]
+            },
+            "description": "Цель: проверить обработку запроса к несуществующему бронированию.\n\nМетод: GET /booking/{id}.\n\nВходные данные: заведомо предполагаемый отсутствующим идентификатор 999999999.\n\nОжидаемый результат: HTTP 404 Not Found, сообщение об отсутствии бронирования."
+          },
+          "response": []
+        },
+        {
+          "name": "12 - Invalid JSON",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Некорректный JSON должен возвращать 400\", function () {\n    pm.response.to.have.status(400);\n});\n\npm.test(\"Бронирование не создано\", function () {\n    pm.expect([200, 201]).to.not.include(pm.response.code);\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"firstname\": \"Artem\",\n    \"lastname\": \"Kovalev\",\n    \"totalprice\": 12500,",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "13 - Missing Required Field",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Отсутствие обязательного поля должно возвращать 400\", function () {\n    pm.response.to.have.status(400);\n});\n\npm.test(\"Сервер не вернул успешный статус создания\", function () {\n    pm.expect([200, 201]).to.not.include(pm.response.code);\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "\n{\n    \"lastname\": \"Kovalev\",\n    \"totalprice\": 12500,\n    \"depositpaid\": true,\n    \"bookingdates\": {\n        \"checkin\": \"2027-03-10\",\n        \"checkout\": \"2027-03-15\"\n    },\n    \"additionalneeds\": \"Breakfast\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "14 - Empty Firstname",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Пустое имя должно отклоняться с 400\", function () {\n    pm.response.to.have.status(400);\n});\n\npm.test(\"Ответ не должен быть успешным\", function () {\n    pm.expect([200, 201]).to.not.include(pm.response.code);\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "\n{\n    \"firstname\": \"\",\n    \"lastname\": \"Kovalev\",\n    \"totalprice\": 12500,\n    \"depositpaid\": true,\n    \"bookingdates\": {\n        \"checkin\": \"2027-03-10\",\n        \"checkout\": \"2027-03-15\"\n    },\n    \"additionalneeds\": \"Breakfast\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "15 - Negative Total Price",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Отрицательная стоимость должна возвращать 400\", function () {\n    pm.response.to.have.status(400);\n});\n\npm.test(\"Бронирование не должно создаваться\", function () {\n    pm.expect([200, 201]).to.not.include(pm.response.code);\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "\n{\n    \"firstname\": \"Artem\",\n    \"lastname\": \"Kovalev\",\n    \"totalprice\": -1,\n    \"depositpaid\": true,\n    \"bookingdates\": {\n        \"checkin\": \"2027-03-10\",\n        \"checkout\": \"2027-03-15\"\n    },\n    \"additionalneeds\": \"Breakfast\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
           },
           "response": []
         }
