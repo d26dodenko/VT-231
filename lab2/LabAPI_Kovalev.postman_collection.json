@@ -1,0 +1,366 @@
+{
+  "info": {
+    "_postman_id": "5e05e40e-8fe1-4353-98f7-d963fab64ea1",
+    "name": "LabAPI_Kovalev",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "60154735",
+    "_collection_link": "https://go.postman.co/collection/60154735-5e05e40e-8fe1-4353-98f7-d963fab64ea1?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "01 - Valid Auth",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Статус ответа 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Ответ содержит токен\", function () {\n    const data = pm.response.json();\n    pm.expect(data).to.have.property(\"token\");\n    pm.expect(data.token).to.be.a(\"string\").and.not.empty;\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n\nif (pm.response.code === 200) {\n    const data = pm.response.json();\n\n    if (typeof data.token === \"string\" && data.token.length > 0) {\n        pm.environment.set(\"token\", data.token);\n    }\n}\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "\n{\n    \"username\": \"admin\",\n    \"password\": \"password123\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth"
+              ]
+            },
+            "description": "Цель: получить токен для авторизованных запросов.  \nМетод: POST /auth.  \nВходные данные: логин admin и пароль password123.  \nОжидаемый результат: HTTP 200 и JSON с полем token."
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Invalid Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус ответа 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Ошибка авторизации\", function () {\n    const data = pm.response.json();\n    pm.expect(data.reason).to.eql(\"Bad credentials\");\n});\n\npm.test(\"Токен не возвращается\", function () {\n    const data = pm.response.json();\n    pm.expect(data).to.not.have.property(\"token\");\n});\n\npm.test(\"Неверный пароль должен возвращать 401\", function () {\n    pm.response.to.have.status(401);\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"wrong_password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Booking",
+      "item": [
+        {
+          "name": "01 - Create Booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Статус ответа 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Бронированию присвоен ID\", function () {\n    const data = pm.response.json();\n    pm.expect(data.bookingid).to.be.a(\"number\");\n});\n\npm.test(\"Данные гостя совпадают\", function () {\n    const data = pm.response.json();\n    pm.expect(data.booking.firstname).to.eql(\"Artem\");\n    pm.expect(data.booking.lastname).to.eql(\"Kovelev\");\n    pm.expect(data.booking.totalprice).to.eql(12500);\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n\nif (pm.response.code === 200) {\n    const data = pm.response.json();\n\n    if (typeof data.bookingid === \"number\") {\n        pm.environment.set(\"bookingId\", data.bookingid);\n    }\n}\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"firstname\": \"Artem\",\n    \"lastname\": \"Kovelev\",\n    \"totalprice\": 12500,\n    \"depositpaid\": true,\n    \"bookingdates\": {\n        \"checkin\": \"2027-03-10\",\n        \"checkout\": \"2027-03-15\"\n    },\n    \"additionalneeds\": \"Breakfast\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Get Booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Статус ответа 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Данные гостя совпадают\", function () {\n    const data = pm.response.json();\n    pm.expect(data.firstname).to.eql(\"Artem\");\n    pm.expect(data.lastname).to.eql(\"Kovelev\");\n});\n\npm.test(\"Стоимость и даты бронирования верны\", function () {\n    const data = pm.response.json();\n    pm.expect(data.totalprice).to.eql(12500);\n    pm.expect(data.bookingdates.checkin).to.eql(\"2027-03-10\");\n    pm.expect(data.bookingdates.checkout).to.eql(\"2027-03-15\");\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/booking/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
+            },
+            "description": "Цель: получение ранее созданного бронирования по ID.  \nМетод: GET /booking/{id}.  \nВходные данные: идентификатор bookingId из окружения.  \nОжидаемый результат: HTTP 200 и JSON с данными бронирования."
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Update Booking PUT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Статус ответа 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Стоимость обновлена\", function () {\n    const data = pm.response.json();\n    pm.expect(data.totalprice).to.eql(13900);\n});\n\npm.test(\"Даты и депозит обновлены\", function () {\n    const data = pm.response.json();\n    pm.expect(data.depositpaid).to.eql(false);\n    pm.expect(data.bookingdates.checkin).to.eql(\"2027-03-12\");\n    pm.expect(data.bookingdates.checkout).to.eql(\"2027-03-16\");\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "\n{\n    \"firstname\": \"Artem\",\n    \"lastname\": \"Kovelev\",\n    \"totalprice\": 13900,\n    \"depositpaid\": false,\n    \"bookingdates\": {\n        \"checkin\": \"2027-03-12\",\n        \"checkout\": \"2027-03-16\"\n    },\n    \"additionalneeds\": \"Lunch\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
+            },
+            "description": "Цель: полное обновление ранее созданного бронирования. Входные данные: bookingId, токен авторизации и новый JSON с данными гостя. Ожидаемый результат: HTTP 200 и обновлённые данные бронирования."
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Update Booking PATCH",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Статус ответа 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Имя гостя изменено\", function () {\n    const data = pm.response.json();\n    pm.expect(data.firstname).to.eql(\"ArtemUpdated\");\n});\n\npm.test(\"Дополнительная услуга изменена\", function () {\n    const data = pm.response.json();\n    pm.expect(data.additionalneeds).to.eql(\"Dinner\");\n});\n\npm.test(\"Стоимость осталась прежней\", function () {\n    const data = pm.response.json();\n    pm.expect(data.totalprice).to.eql(13900);\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"firstname\": \"ArtemUpdated\",\n    \"additionalneeds\": \"Dinner\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
+            },
+            "description": "Цель: частичное обновление существующего бронирования. Входные данные: bookingId, токен авторизации, новое имя и дополнительная услуга. Ожидаемый результат: HTTP 200, изменённые поля обновлены, остальные данные сохранены."
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Delete Booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Статус ответа 201\", function () {\n    pm.response.to.have.status(201);\n});\n\npm.test(\"Сервер подтвердил удаление\", function () {\n    pm.expect(pm.response.text()).to.include(\"Created\");\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/booking/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
+            },
+            "description": "Цель: удалить ранее созданное бронирование по его идентификатору. Входные данные: `bookingId` и токен авторизации. Ожидаемый результат для Restful-Booker: HTTP `201 Created` и подтверждение удаления."
+          },
+          "response": []
+        },
+        {
+          "name": "06 - Get Deleted Booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Статус ответа 404\", function () {\n    pm.response.to.have.status(404);\n});\n\npm.test(\"Бронирование не найдено\", function () {\n    pm.expect(pm.response.text()).to.include(\"Not Found\");\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/booking/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
+            },
+            "description": "Цель: проверить отсутствие бронирования после его удаления.\n\nМетод: GET /booking/{id}.\n\nВходные данные: идентификатор ранее удалённого бронирования.\n\nОжидаемый результат: HTTP 404 Not Found, поскольку бронирование больше не существует."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "01 - Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\npm.test(\"Статус ответа 201\", function () {\n    pm.response.to.have.status(201);\n});\n\npm.test(\"Время ответа меньше 5000 мс\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(5000);\n});\n\npm.test(\"Размер ответа меньше 1 КБ\", function () {\n    pm.expect(pm.response.responseSize).to.be.below(1024);\n});\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ping",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ping"
+              ]
+            },
+            "description": "Цель: проверка работоспособности сервиса Restful-Booker.  \nМетод: GET.  \nВходные данные: отсутствуют.  \nОжидаемый результат: HTTP 201 Created.  \nПроверки: статус ответа, время выполнения и размер ответа."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
