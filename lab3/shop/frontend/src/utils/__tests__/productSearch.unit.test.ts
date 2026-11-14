@@ -86,3 +86,7 @@ it("Находит совпадение в середине названия", (
   expect(result[0].title).toBe("Basic Cotton T-Shirt");
 });
 });
+
+it("Проверка блокировки сборки", () => {
+  expect(1).toBe(2);
+});
