@@ -1,0 +1,238 @@
+
+name: Lab3 CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Unit, Lint and Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: lab3/shop/frontend
+        run: npm ci
+
+      - name: ESLint
+        working-directory: lab3/shop/frontend
+        run: npm run lint
+
+      - name: Unit tests and coverage gate
+        working-directory: lab3/shop/frontend
+        run: npm run test:unit:coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: unit-coverage
+          path: lab3/shop/frontend/coverage/
+          if-no-files-found: ignore
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install frontend dependencies
+        working-directory: lab3/shop/frontend
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: lab3/shop/backend
+        run: npm ci
+
+      - name: Check frontend vulnerabilities
+        working-directory: lab3/shop/frontend
+        run: npm audit --audit-level=critical
+
+      - name: Check backend vulnerabilities
+        working-directory: lab3/shop/backend
+        run: npm audit --audit-level=critical
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [unit, security]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: lab3/shop/frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: lab3/shop/frontend
+        run: npm run build
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: build
+
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PORT: '5001'
+      MONGO_URI: mongodb://127.0.0.1:27017/lab3_shop_test
+      JWT_SECRET: lab3_ci_test_secret
+      API_BASE_URL: http://127.0.0.1:5001
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install backend dependencies
+        working-directory: lab3/shop/backend
+        run: npm ci
+
+      - name: Prepare test products
+        working-directory: lab3/shop/backend
+        run: node scripts/seedProducts.js
+
+      - name: Start backend
+        working-directory: lab3/shop/backend
+        run: |
+          nohup node index.js > backend.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:5001/ > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat backend.log
+          exit 1
+
+      - name: Run integration tests
+        working-directory: lab3/shop/backend
+        run: |
+          node --test \
+            --test-reporter=spec \
+            --test-reporter=junit \
+            --test-reporter-destination=stdout \
+            --test-reporter-destination=integration-results.xml \
+            tests/api.integration.test.js
+
+      - name: Upload integration report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: integration-report
+          path: lab3/shop/backend/integration-results.xml
+          if-no-files-found: ignore
+
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    needs: integration
+
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PORT: '5001'
+      MONGO_URI: mongodb://127.0.0.1:27017/lab3_shop_test
+      JWT_SECRET: lab3_ci_test_secret
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install backend dependencies
+        working-directory: lab3/shop/backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: lab3/shop/frontend
+        run: npm ci
+
+      - name: Prepare test products
+        working-directory: lab3/shop/backend
+        run: node scripts/seedProducts.js
+
+      - name: Start backend
+        working-directory: lab3/shop/backend
+        run: |
+          nohup node index.js > backend.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:5001/ > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat backend.log
+          exit 1
+
+      - name: Start frontend
+        working-directory: lab3/shop/frontend
+        run: |
+          nohup npm run dev -- --host 127.0.0.1 --port 5173 --strictPort > frontend.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat frontend.log
+          exit 1
+
+      - name: Install Playwright Chromium
+        working-directory: lab3/shop/frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        working-directory: lab3/shop/frontend
+        run: npx playwright test --workers=1
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: lab3/shop/frontend/playwright-report/
+          if-no-files-found: ignore
