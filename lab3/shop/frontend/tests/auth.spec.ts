@@ -26,7 +26,7 @@ test("Регистрация нового пользователя", async ({ pa
   await page.screenshot({
     path: path.resolve(
       process.cwd(),
-      "../../Screenshots/02_registration.png"
+      "../../screenshots/02_registration.png"
     ),
     fullPage: true
   });
@@ -60,7 +60,7 @@ test("Вход зарегистрированного пользователя",
 
   // Сохраняем доказательство успешного входа
   await page.screenshot({
-    path: "../../Screenshots/04_login.png",
+    path: "../../screenshots/04_login.png",
     fullPage: true
   });
 });
@@ -105,7 +105,7 @@ test("Выход пользователя из системы", async ({ page })
   await page.screenshot({
     path: path.resolve(
       process.cwd(),
-      "../../Screenshots/11_logout.png"
+      "../../screenshots/11_logout.png"
     ),
     fullPage: true
   });

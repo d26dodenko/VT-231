@@ -83,7 +83,7 @@ test("Оформление заказа", async ({ page }) => {
   await page.screenshot({
     path: path.resolve(
       process.cwd(),
-      "../../Screenshots/10_checkout.png"
+      "../../screenshots/10_checkout.png"
     ),
     fullPage: true
   });

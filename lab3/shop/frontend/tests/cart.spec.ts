@@ -60,7 +60,7 @@ test("Добавление товара в корзину", async ({ page }) => 
   await page.screenshot({
     path: path.resolve(
       process.cwd(),
-      "../../Screenshots/08_cart.png"
+      "../../screenshots/08_cart.png"
     ),
     fullPage: true
   });

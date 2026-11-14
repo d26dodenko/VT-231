@@ -34,7 +34,7 @@ test("Поиск товара по названию", async ({ page }) => {
   await page.screenshot({
     path: path.resolve(
       process.cwd(),
-      "../../Screenshots/06_search.png"
+      "../../screenshots/06_search.png"
     ),
     fullPage: true
   });
