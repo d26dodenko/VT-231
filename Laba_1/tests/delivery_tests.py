@@ -48,7 +48,7 @@ def test_tc12_premium_long_distance():
     assert calculate_delivery_cost(1000, 30, True) == 400.0
 
 
-# ---------- Негативные ----------
+#  Негативные
 
 def test_tc08_negative_order_amount():
     with pytest.raises(ValueError):
