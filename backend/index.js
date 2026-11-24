@@ -10,22 +10,21 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-
 app.get("/", (req, res) => {
     res.json({ message: "Server is running!"});
 });
 
 app.use("/api/users", userRouter);
 app.use("/api/products", productRouter);
-app.use('/api/cart', cartRouter); 
-app.use("/api/orders", orderRouter); 
+app.use('/api/cart', cartRouter);
+app.use("/api/orders", orderRouter);
 
-app.listen(PORT, async () => {
+app.listen(5000, async () => { // <-- ИЗМЕНЕНО: жестко указан порт 5000
   try {
     await connection;
     console.log("Connected to DataBase");
   } catch (error) {
     console.log(`${error} is giving while connecting`);
   }
-  console.log(`Listening on PORT: ${PORT}`);
+  console.log(`Listening on PORT: 5000`); // <-- ИЗМЕНЕНО для консоли
 });
