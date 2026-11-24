@@ -23,7 +23,7 @@ jobs:
       with:
         node-version: lts/*
 
-    
+   
     - name: Install backend dependencies
       run: npm ci
       working-directory: ./backend
@@ -47,10 +47,10 @@ jobs:
     
     - name: Wait for servers
       run: |
-        npx wait-on http://localhost:5000/api/products http://localhost:5173 --timeout 60000
+        npx wait-on http://localhost:5000/api/products http://localhost:5173 --timeout 90000
       working-directory: ./frontend
 
-    
+   
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
       working-directory: ./frontend
