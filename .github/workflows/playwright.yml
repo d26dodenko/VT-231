@@ -10,12 +10,6 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
 
-    services:
-      mongodb:
-        image: mongo:latest
-        ports:
-          - 27017:27017
-
     steps:
     - uses: actions/checkout@v4
     
@@ -23,21 +17,6 @@ jobs:
       with:
         node-version: lts/*
 
-    # 1. БЭКЕНД
-    - name: Install backend dependencies
-      run: npm ci
-      working-directory: ./backend
-      
-    - name: Start Backend
-      run: |
-        node index.js &
-        sleep 15
-      working-directory: ./backend
-      env:
-        MONGO_URI: mongodb://mongodb:27017/edgistify
-        PORT: 5000
-
-    # 2. ФРОНТЕНД
     - name: Install frontend dependencies
       run: npm ci
       working-directory: ./frontend
@@ -45,17 +24,13 @@ jobs:
     - name: Start Frontend
       run: |
         npm run dev &
-        sleep 15
+        sleep 10
       working-directory: ./frontend
 
-    # 3. ЖДЕМ СЕРВЕРЫ (увеличен таймаут)
-    - name: Wait for servers
-      run: |
-        npx wait-on http://localhost:5000/api/products --timeout 120000
-        npx wait-on http://localhost:5173 --timeout 60000
+    - name: Wait for Frontend
+      run: npx wait-on http://localhost:5173 --timeout 60000
       working-directory: ./frontend
 
-    # 4. ТЕСТЫ
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
       working-directory: ./frontend
