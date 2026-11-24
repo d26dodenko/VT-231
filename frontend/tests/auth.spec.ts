@@ -11,7 +11,7 @@ test.describe('Авторизация и Регистрация', () => {
     testEmail = `test${Date.now()}@example.com`;
     console.log('Регистрируем:', testEmail);
 
-    await page.goto('http://localhost:5174/signup'); 
+    await page.goto('http://localhost:5173/signup'); 
     
     await page.getByPlaceholder('Name').fill('Auto Tester');
     await page.getByPlaceholder('Email').fill(testEmail); 
@@ -23,7 +23,7 @@ test.describe('Авторизация и Регистрация', () => {
 
   test('Успешный вход в систему', async ({ page }) => {
     
-    await page.goto('http://localhost:5174/login');
+    await page.goto('http://localhost:5173/login');
     
     await page.locator('input[type="email"]').fill(testEmail); 
     await page.locator('input[type="password"]').fill('password123');
