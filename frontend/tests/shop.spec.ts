@@ -64,7 +64,7 @@ test.describe('Покупки в магазине', () => {
   });
 
   test('Выход из системы', async ({ page }) => {
-    await page.goto('http://localhost:5174/');
+    await page.goto('http://localhost:5173/');
     await expect(page.locator('a:has-text("Login")').first()).toBeVisible();
   });
 });
