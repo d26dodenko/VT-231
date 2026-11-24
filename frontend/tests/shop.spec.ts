@@ -9,7 +9,7 @@ test.describe('Покупки в магазине', () => {
   
   test.beforeAll(async ({ browser }) => {
     const page = await browser.newPage();
-    await page.goto('http://localhost:5174/signup');
+    await page.goto('http://localhost:5173/signup');
     await page.getByPlaceholder('Name').fill('Shop Tester');
     await page.getByPlaceholder('Email').fill(testEmail);
     await page.getByPlaceholder('Password').fill(testPassword);
@@ -19,12 +19,12 @@ test.describe('Покупки в магазине', () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5174/login');
+    await page.goto('http://localhost:5173/login');
     await page.locator('input[type="email"]').fill(testEmail); 
     await page.locator('input[type="password"]').fill(testPassword);
     await page.getByRole('button', { name: 'Login' }).click();
     await page.waitForTimeout(2000); 
-    await page.goto('http://localhost:5174/'); 
+    await page.goto('http://localhost:5173/'); 
   });
 
   test('Поиск товара', async ({ page }) => {
@@ -34,7 +34,7 @@ test.describe('Покупки в магазине', () => {
 
   test('Добавление товара в корзину', async ({ page }) => {
     
-    await page.goto('http://localhost:5174/');
+    await page.goto('http://localhost:5173/');
     
     
     await page.waitForSelector('h1:has-text("Products")', { timeout: 15000 });
@@ -53,7 +53,7 @@ test.describe('Покупки в магазине', () => {
   });
 
   test('Оформление заказа', async ({ page }) => {
-    await page.goto('http://localhost:5174/cart');
+    await page.goto('http://localhost:5173/cart');
     await page.waitForTimeout(2000);
     
     const checkoutBtn = page.getByRole('button', { name: /Checkout|Proceed/i });
