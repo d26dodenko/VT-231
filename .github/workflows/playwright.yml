@@ -32,7 +32,7 @@ jobs:
       run: node index.js &
       working-directory: ./backend
       env:
-        MONGO_URI: mongodb://localhost:27017/edgistify
+        MONGO_URI: mongodb://mongodb:27017/edgistify
         PORT: 5000
 
     
