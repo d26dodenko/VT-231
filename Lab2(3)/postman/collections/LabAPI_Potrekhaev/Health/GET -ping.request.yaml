@@ -1,0 +1,18 @@
+$kind: http-request
+name: GET /ping
+url: "{{baseUrl}}/ping"
+method: GET
+queryParams:
+  - key: ""
+    value: null
+    disabled: true
+    description: Проверить доступность сервиса; Restful-Booker обычно возвращает 201 Created.
+scripts:
+  - type: afterResponse
+    code: "pm.test('Статус 201',()=>pm.response.to.have.status(201));\r
+
+      pm.test('Время < 2000 мс',()=>pm.expect(pm.response.responseTime).below(2000));\r
+
+      pm.test('Created',()=>pm.expect(pm.response.text()).include('Created'));"
+    language: text/javascript
+order: 1000

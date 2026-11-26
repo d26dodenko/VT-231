@@ -1,0 +1,46 @@
+$kind: http-request
+name: PUT /booking/{id}
+url: "{{baseUrl}}/booking/{{bookingId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+  Cookie: token={{token}}
+queryParams:
+  - key: ""
+    value: null
+    disabled: true
+    description: Полностью обновить бронирование; ожидается 200.
+body:
+  type: json
+  content: "{\r
+
+    \    \"firstname\":\"Petr\",\r
+
+    \    \"lastname\":\"Sidorov\",\r
+
+    \    \"totalprice\":200,\r
+
+    \    \"depositpaid\":false,\r
+
+    \    \"bookingdates\":{\r
+
+    \        \"checkin\":\"2025-02-01\",\r
+
+    \        \"checkout\":\"2025-02-05\"\r
+
+    \    },\r
+
+    \    \"additionalneeds\":\"Dinner\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "pm.test('Статус 200',()=>pm.response.to.have.status(200));\r
+
+      pm.test('Время < 2000
+      мс',()=>pm.expect(pm.response.responseTime).below(2000));\r
+
+      pm.test('firstname
+      обновлён',()=>pm.expect(pm.response.json().firstname).eql('Petr'));"
+    language: text/javascript
+order: 4572

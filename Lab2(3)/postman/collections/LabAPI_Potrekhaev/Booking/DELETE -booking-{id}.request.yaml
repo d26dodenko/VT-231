@@ -1,0 +1,20 @@
+$kind: http-request
+name: DELETE /booking/{id}
+url: "{{baseUrl}}/booking/{{bookingId}}"
+method: DELETE
+headers:
+  Cookie: token={{token}}
+queryParams:
+  - key: ""
+    value: null
+    disabled: true
+    description: Удалить бронирование; фактически часто 201.
+scripts:
+  - type: afterResponse
+    code: "pm.test('Успешное удаление',()=>pm.expect(pm.response.code).to.be.oneOf([200,201,204]));\r
+
+      pm.test('Время < 2000 мс',()=>pm.expect(pm.response.responseTime).below(2000));\r
+
+      pm.test('Ответ получен',()=>pm.expect(pm.response).to.exist);"
+    language: text/javascript
+order: 6000

@@ -1,0 +1,35 @@
+$kind: http-request
+name: POST /auth — получить токен
+description: ""
+url: "{{baseUrl}}/auth"
+method: POST
+headers:
+  Content-Type: application/json
+queryParams:
+  - key: ""
+    value: null
+    disabled: true
+    description: Получить токен; ожидается 200 и поле token.
+body:
+  type: json
+  content: "{\r
+
+    \    \"username\": \"admin\",\r
+
+    \    \"password\": \"password123\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "pm.test('Статус 200',()=>pm.response.to.have.status(200));\r
+
+      pm.test('Время < 2000 мс',()=>pm.expect(pm.response.responseTime).below(2000));\r
+
+      pm.test('Есть token',()=>pm.expect(pm.response.json()).to.have.property('token'));\r
+
+      pm.environment.set('token',pm.response.json().token);"
+    language: text/javascript
+  - type: beforeRequest
+    code: ""
+    language: text/javascript
+order: 1000

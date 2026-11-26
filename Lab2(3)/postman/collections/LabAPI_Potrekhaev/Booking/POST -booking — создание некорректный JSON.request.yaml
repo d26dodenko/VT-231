@@ -1,0 +1,23 @@
+$kind: http-request
+name: POST /booking — создание некорректный JSON
+url: "{{baseUrl}}/booking"
+method: POST
+headers:
+  Content-Type: application/json
+queryParams:
+  - key: ""
+    value: null
+    disabled: true
+    description: Ожидается 400/500.
+body:
+  type: json
+  content: "{\r\n    \"firstname\":\"\r\n}"
+scripts:
+  - type: afterResponse
+    code: "pm.test('Код',()=>pm.expect(pm.response.code).to.be.oneOf([400,500]));\r
+
+      pm.test('Время',()=>pm.expect(pm.response.responseTime).below(3000));\r
+
+      pm.test('Ответ',()=>pm.expect(pm.response).to.exist);"
+    language: text/javascript
+order: 1637

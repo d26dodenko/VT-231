@@ -1,0 +1,30 @@
+$kind: http-request
+name: PATCH /booking/{id}
+url: "{{baseUrl}}/booking/{{bookingId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+  Cookie: token={{token}}
+queryParams:
+  - key: ""
+    value: null
+    disabled: true
+    description: Частично обновить бронирование; ожидается 200.
+body:
+  type: json
+  content: "{\r
+
+    \    \"firstname\":\"Alex\",\r
+
+    \    \"totalprice\":0\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "pm.test('Статус 200',()=>pm.response.to.have.status(200));\r
+
+      pm.test('Время < 2000 мс',()=>pm.expect(pm.response.responseTime).below(2000));\r
+
+      pm.test('firstname изменён',()=>pm.expect(pm.response.json().firstname).eql('Alex'));"
+    language: text/javascript
+order: 5000

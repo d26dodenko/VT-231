@@ -1,0 +1,36 @@
+$kind: http-request
+name: POST /booking — создание checkout раньше checkin
+url: "{{baseUrl}}/booking"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{\r
+
+    \    \"firstname\": \"A\",\r
+
+    \    \"lastname\": \"B\",\r
+
+    \    \"totalprice\": 100,\r
+
+    \    \"depositpaid\": false,\r
+
+    \    \"bookingdates\": {\r
+
+    \        \"checkin\": \"2025-02-10\",\r
+
+    \        \"checkout\": \"2025-02-01\"\r
+
+    \    }\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "pm.test('Код',()=>pm.expect(pm.response.code).to.be.oneOf([200,201,400,500]));\r
+
+      pm.test('Время',()=>pm.expect(pm.response.responseTime).below(3000));\r
+
+      pm.test('Ответ',()=>pm.expect(pm.response).to.exist);"
+    language: text/javascript
+order: 8000

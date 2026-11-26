@@ -1,0 +1,20 @@
+$kind: http-request
+name: DELETE /booking/{id} с некорректным токеном
+url: "{{baseUrl}}/booking/{{bookingId}}"
+method: DELETE
+headers:
+  Content-Type: application/json
+queryParams:
+  - key: ""
+    value: null
+    disabled: true
+    description: Ожидается 401/403.
+scripts:
+  - type: afterResponse
+    code: "pm.test('Код',()=>pm.expect(pm.response.code).to.be.oneOf([401,403]));\r
+
+      pm.test('Время',()=>pm.expect(pm.response.responseTime).below(3000));\r
+
+      pm.test('Ответ',()=>pm.expect(pm.response).to.exist);"
+    language: text/javascript
+order: 5095

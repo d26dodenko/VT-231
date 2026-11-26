@@ -1,0 +1,29 @@
+$kind: http-request
+name: POST /auth — неверные данные
+url: "{{baseUrl}}/auth"
+method: POST
+headers:
+  Content-Type: application/json
+queryParams:
+  - key: ""
+    value: null
+    disabled: true
+    description: Проверка неверного логина/пароля; ожидается reason или 401/403.
+body:
+  type: json
+  content: "{\r
+
+    \    \"username\": \"wrong\",\r
+
+    \    \"password\":\"wrong\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "pm.test('Код ошибки или 200 с reason',()=>pm.expect(pm.response.code).to.be.oneOf([200,401,403]));\r
+
+      pm.test('Время < 2000 мс',()=>pm.expect(pm.response.responseTime).below(2000));\r
+
+      pm.test('JSON-ответ',()=>pm.expect(pm.response.json()).to.be.an('object'));"
+    language: text/javascript
+order: 2000

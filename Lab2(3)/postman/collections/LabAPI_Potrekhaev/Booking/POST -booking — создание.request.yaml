@@ -1,0 +1,46 @@
+$kind: http-request
+name: POST /booking — создание
+url: "{{baseUrl}}/booking"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+queryParams:
+  - key: ""
+    value: null
+    disabled: true
+    description: Создать бронирование; сохранить bookingid.
+body:
+  type: json
+  content: "{\r
+
+    \    \"firstname\":\"Ivan\",\r
+
+    \    \"lastname\":\"Petrov\",\r
+
+    \    \"totalprice\":150,\r
+
+    \    \"depositpaid\":true,\r
+
+    \    \"bookingdates\":{\r
+
+    \        \"checkin\":\"2025-01-10\",\r
+
+    \        \"checkout\":\"2025-01-15\"\r
+
+    \    },\r
+
+    \    \"additionalneeds\":\"Breakfast\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "pm.test('Статус 200/201',()=>pm.expect(pm.response.code).to.be.oneOf([200,201]));\r
+
+      pm.test('Время < 2000 мс',()=>pm.expect(pm.response.responseTime).below(2000));\r
+
+      pm.test('Есть bookingid',()=>pm.expect(pm.response.json()).to.have.property('bookingid'));\r
+
+      pm.environment.set('bookingId',pm.response.json().bookingid);"
+    language: text/javascript
+order: 2000

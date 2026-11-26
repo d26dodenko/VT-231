@@ -1,0 +1,37 @@
+$kind: http-request
+name: POST /booking — создание пустые строки
+url: "{{baseUrl}}/booking"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{\r
+
+    \    \"firstname\": \"\", \r
+
+    \    \"lastname\": \"\", \r
+
+    \    \"totalprice\": 100,\r
+
+    \    \"depositpaid\": false,\r
+
+    \    \"bookingdates\": {\r
+
+    \        \"checkin\": \"2025-01-01\",\r
+
+    \        \"checkout\": \"2025-01-02\"\r
+
+    \        }\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "pm.test('Код',()=>pm.expect(pm.response.code).to.be.oneOf([200,201,400,5\
+      00]));\r
+
+      pm.test('Время',()=>pm.expect(pm.response.responseTime).below(3000));\r
+
+      pm.test('Ответ',()=>pm.expect(pm.response).to.exist);"
+    language: text/javascript
+order: 7099
