@@ -1,5 +1,5 @@
 import pytest
-from pallet_inspection import inspect_board
+from lab1.pallet_inspection import inspect_board
 
 
 def test_01_ok_nominal():
